@@ -36,14 +36,19 @@ jobs:
       - name: Build APKs
         run: ./gradlew assembleDebug assembleRelease --no-daemon --build-cache --parallel
 
+      - name: Rename APKs
+        run: |
+          cp app/build/outputs/apk/debug/*.apk debug.apk
+          cp app/build/outputs/apk/release/*.apk release.apk
+
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: rakawikchat-debug
-          path: app/build/outputs/apk/debug/*.apk
+          name: debug
+          path: debug.apk
 
       - name: Upload release APK
         uses: actions/upload-artifact@v4
         with:
-          name: rakawikchat-release
-          path: app/build/outputs/apk/release/*.apk
+          name: release
+          path: release.apk
