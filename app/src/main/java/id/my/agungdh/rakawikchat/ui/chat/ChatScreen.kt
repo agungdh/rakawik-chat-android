@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -44,42 +45,40 @@ fun ChatScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(recipientName)
-                        if (uiState.isConnected) {
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Badge(
-                                containerColor = MaterialTheme.colorScheme.primaryContainer
-                            ) {
-                                Text("live", style = MaterialTheme.typography.labelSmall)
-                            }
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .navigationBarsPadding()
+            .imePadding()
+    ) {
+        TopAppBar(
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(recipientName)
+                    if (uiState.isConnected) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Badge(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                        ) {
+                            Text("live", style = MaterialTheme.typography.labelSmall)
                         }
                     }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
                 }
-            )
-        },
-        bottomBar = {
-            ChatInputBar(
-                text = uiState.inputText,
-                onTextChange = viewModel::onInputChange,
-                onSend = viewModel::sendMessage,
-                enabled = uiState.isConnected
-            )
-        }
-    ) { innerPadding ->
+            },
+            navigationIcon = {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                }
+            }
+        )
+
         when {
             uiState.isLoading -> {
                 Box(
-                    modifier = Modifier.fillMaxSize().padding(innerPadding),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .weight(1f),
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator()
@@ -95,9 +94,8 @@ fun ChatScreen(
 
                 LazyColumn(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding)
-                        .imePadding(),
+                        .fillMaxWidth()
+                        .weight(1f),
                     state = listState,
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
                 ) {
@@ -110,6 +108,13 @@ fun ChatScreen(
                 }
             }
         }
+
+        ChatInputBar(
+            text = uiState.inputText,
+            onTextChange = viewModel::onInputChange,
+            onSend = viewModel::sendMessage,
+            enabled = uiState.isConnected
+        )
     }
 }
 
@@ -177,13 +182,10 @@ private fun ChatInputBar(
     onSend: () -> Unit,
     enabled: Boolean
 ) {
-    Surface(
-        shadowElevation = 8.dp
-    ) {
+    Surface(shadowElevation = 8.dp) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .navigationBarsPadding()
                 .padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
