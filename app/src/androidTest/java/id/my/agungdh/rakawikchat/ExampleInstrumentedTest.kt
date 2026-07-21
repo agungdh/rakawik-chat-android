@@ -1,4 +1,4 @@
-package id.biz.ratihkartika.rakawikchat
+package id.my.agungdh.rakawikchat
 
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -19,6 +19,6 @@ class ExampleInstrumentedTest {
     fun useAppContext() {
         // Context of the app under test.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        assertEquals("id.biz.ratihkartika.rakawikchat", appContext.packageName)
+        assertEquals("id.my.agungdh.rakawikchat", appContext.packageName)
     }
 }

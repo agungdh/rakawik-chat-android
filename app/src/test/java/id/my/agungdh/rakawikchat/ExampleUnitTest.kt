@@ -1,4 +1,4 @@
-package id.biz.ratihkartika.rakawikchat
+package id.my.agungdh.rakawikchat
 
 import org.junit.Test
 

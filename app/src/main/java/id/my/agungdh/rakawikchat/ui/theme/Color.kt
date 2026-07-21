@@ -1,4 +1,4 @@
-package id.biz.ratihkartika.rakawikchat.ui.theme
+package id.my.agungdh.rakawikchat.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
