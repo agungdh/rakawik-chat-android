@@ -20,6 +20,8 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/master' }}
 
       - name: Generate debug keystore
         run: |
@@ -29,13 +31,10 @@ jobs:
             -alias androiddebugkey \
             -keypass android \
             -keyalg RSA -keysize 2048 -validity 10000 \
-            -dname "CN=CI Debug, OU=CI, O=CI, L=CI, ST=CI, C=US"
+            -dname "CN=CI, OU=CI, O=CI, L=CI, ST=CI, C=US"
 
-      - name: Build debug APK
-        run: ./gradlew assembleDebug --no-daemon
-
-      - name: Build release APK
-        run: ./gradlew assembleRelease --no-daemon
+      - name: Build APKs
+        run: ./gradlew assembleDebug assembleRelease --no-daemon --build-cache --parallel
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4

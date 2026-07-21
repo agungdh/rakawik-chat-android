@@ -31,11 +31,12 @@ android {
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("releaseDebug")
-            isMinifyEnabled = false
-            isShrinkResources = false
-            optimization {
-                enable = false
-            }
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
     compileOptions {
@@ -45,6 +46,9 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+    lint {
+        checkReleaseBuilds = false
     }
 }
 
