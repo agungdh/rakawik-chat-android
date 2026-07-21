@@ -1,6 +1,8 @@
 package id.my.agungdh.rakawikchat.util
 
+import id.my.agungdh.rakawikchat.BuildConfig
+
 object Constants {
-    const val BASE_URL = "http://192.168.1.54:8080"
-    const val WS_URL = "ws://192.168.1.54:8080/ws"
+    val BASE_URL: String get() = BuildConfig.BASE_URL
+    val WS_URL: String get() = BuildConfig.WS_URL
 }

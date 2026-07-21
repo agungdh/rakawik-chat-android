@@ -17,6 +17,8 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField("String", "BASE_URL", "\"http://192.168.1.54:8080/\"")
+        buildConfigField("String", "WS_URL", "\"ws://192.168.1.54:8080/ws\"")
     }
 
     signingConfigs {
@@ -29,7 +31,13 @@ android {
     }
 
     buildTypes {
+        debug {
+            buildConfigField("String", "BASE_URL", "\"http://192.168.1.54:8080/\"")
+            buildConfigField("String", "WS_URL", "\"ws://192.168.1.54:8080/ws\"")
+        }
         release {
+            buildConfigField("String", "BASE_URL", "\"https://api.rakawi-dodo.my.id/\"")
+            buildConfigField("String", "WS_URL", "\"wss://api.rakawi-dodo.my.id/ws\"")
             signingConfig = signingConfigs.getByName("releaseDebug")
             isMinifyEnabled = true
             isShrinkResources = true
