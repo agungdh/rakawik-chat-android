@@ -5,10 +5,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
-import androidx.compose.material3.Checkbox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -16,12 +14,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import id.my.agungdh.rakawikchat.data.remote.dto.ConversationResponse
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConversationsScreen(
-    onConversationClick: (String) -> Unit,
+    onChatOpen: (String, String) -> Unit,
     onLogout: () -> Unit,
     viewModel: ConversationsViewModel = viewModel()
 ) {
@@ -30,9 +27,7 @@ fun ConversationsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Text("Chats")
-                },
+                title = { Text("Chats") },
                 actions = {
                     TextButton(onClick = {
                         viewModel.logout()
@@ -42,11 +37,6 @@ fun ConversationsScreen(
                     }
                 }
             )
-        },
-        floatingActionButton = {
-            FloatingActionButton(onClick = { viewModel.loadUsers() }) {
-                Icon(Icons.Default.Add, contentDescription = "New Chat")
-            }
         }
     ) { innerPadding ->
         when {
@@ -66,22 +56,8 @@ fun ConversationsScreen(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(uiState.error!!, color = MaterialTheme.colorScheme.error)
                         Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = { viewModel.loadConversations() }) {
-                            Text("Retry")
-                        }
+                        Button(onClick = { viewModel.loadData() }) { Text("Retry") }
                     }
-                }
-            }
-            uiState.conversations.isEmpty() -> {
-                Box(
-                    modifier = Modifier.fillMaxSize().padding(innerPadding),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        "No conversations yet. Tap + to start a chat.",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
                 }
             }
             else -> {
@@ -89,110 +65,127 @@ fun ConversationsScreen(
                     modifier = Modifier.fillMaxSize().padding(innerPadding),
                     contentPadding = PaddingValues(vertical = 8.dp)
                 ) {
-                    items(uiState.conversations, key = { it.id }) { conversation ->
-                        ConversationItem(
-                            conversation = conversation,
-                            onClick = { onConversationClick(conversation.id) }
+                    if (uiState.existingChats.isNotEmpty()) {
+                        item {
+                            Text(
+                                "Recent Chats",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                            )
+                        }
+                        items(uiState.existingChats, key = { "chat-${it.conversationId}" }) { chat ->
+                            ChatRow(
+                                name = chat.otherFullName,
+                                subtitle = chat.lastMessage,
+                                onClick = { onChatOpen(chat.conversationId, chat.otherFullName) }
+                            )
+                        }
+                    }
+
+                    item {
+                        Text(
+                            "Contacts",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                    }
+
+                    if (uiState.contacts.isEmpty()
+                        && uiState.existingChats.isNotEmpty()) {
+                        item {
+                            Text(
+                                "All contacts have active chats",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)
+                            )
+                        }
+                    }
+
+                    items(uiState.contacts, key = { "contact-${it.id}" }) { contact ->
+                        ContactRow(
+                            name = contact.fullName,
+                            subtitle = "@${contact.username}",
+                            onClick = {
+                                val existingId = viewModel.startChat(contact.username)
+                                if (existingId != null) {
+                                    onChatOpen(existingId, contact.fullName)
+                                } else {
+                                    viewModel.createChat(contact.username) { newId ->
+                                        onChatOpen(newId, contact.fullName)
+                                    }
+                                }
+                            }
                         )
                     }
                 }
             }
         }
+    }
+}
 
-        if (uiState.showCreateDialog) {
-            NewConversationDialog(
-                users = uiState.users,
-                selectedUserIds = uiState.selectedUserIds,
-                onUserToggle = viewModel::toggleUser,
-                onDismiss = viewModel::hideCreateDialog,
-                onCreate = viewModel::createConversation
+@Composable
+private fun ChatRow(name: String, subtitle: String?, onClick: () -> Unit) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                Icons.Filled.Person,
+                contentDescription = null,
+                modifier = Modifier.size(48.dp),
+                tint = MaterialTheme.colorScheme.primary
             )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(name, fontWeight = FontWeight.Bold)
+                if (subtitle != null) {
+                    Text(
+                        subtitle,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun ConversationItem(
-    conversation: ConversationResponse,
-    onClick: () -> Unit
-) {
-    Card(
+private fun ContactRow(name: String, subtitle: String, onClick: () -> Unit) {
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
             .clickable(onClick = onClick)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = conversation.participants.joinToString(", "),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                Icons.Filled.Person,
+                contentDescription = null,
+                modifier = Modifier.size(48.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            if (conversation.lastMessage != null) {
-                Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(name, fontWeight = FontWeight.Bold)
                 Text(
-                    text = "${conversation.lastMessage.senderUsername}: ${conversation.lastMessage.content}",
-                    style = MaterialTheme.typography.bodyMedium,
+                    subtitle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    style = MaterialTheme.typography.bodySmall
                 )
             }
         }
     }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun NewConversationDialog(
-    users: List<id.my.agungdh.rakawikchat.data.remote.dto.UserResponse>,
-    selectedUserIds: Set<Long>,
-    onUserToggle: (Long) -> Unit,
-    onDismiss: () -> Unit,
-    onCreate: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("New Conversation") },
-        text = {
-            LazyColumn {
-                items(users) { user ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onUserToggle(user.id) }
-                            .padding(vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Checkbox(
-                            checked = selectedUserIds.contains(user.id),
-                            onCheckedChange = { onUserToggle(user.id) }
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column {
-                            Text(user.fullName, fontWeight = FontWeight.Bold)
-                            Text(
-                                "@${user.username}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = onCreate,
-                enabled = selectedUserIds.isNotEmpty()
-            ) {
-                Text("Create")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        }
-    )
 }

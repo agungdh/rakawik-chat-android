@@ -26,6 +26,7 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun ChatScreen(
     conversationId: String,
+    recipientName: String,
     onBack: () -> Unit,
     viewModel: ChatViewModel = viewModel()
 ) {
@@ -46,7 +47,7 @@ fun ChatScreen(
             TopAppBar(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Chat")
+                        Text(recipientName)
                         if (uiState.isConnected) {
                             Spacer(modifier = Modifier.width(8.dp))
                             Badge(

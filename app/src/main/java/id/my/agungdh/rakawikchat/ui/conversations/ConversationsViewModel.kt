@@ -4,7 +4,6 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import id.my.agungdh.rakawikchat.RakawikChatApp
-import id.my.agungdh.rakawikchat.data.remote.dto.ConversationResponse
 import id.my.agungdh.rakawikchat.data.remote.dto.UserResponse
 import id.my.agungdh.rakawikchat.util.Resource
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,13 +13,11 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class ConversationsUiState(
-    val conversations: List<ConversationResponse> = emptyList(),
-    val users: List<UserResponse> = emptyList(),
+    val existingChats: List<ChatItem.ExistingChat> = emptyList(),
+    val contacts: List<ChatItem.Contact> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
-    val currentUser: UserResponse? = null,
-    val showCreateDialog: Boolean = false,
-    val selectedUserIds: Set<Long> = emptySet()
+    val currentUsername: String = ""
 )
 
 class ConversationsViewModel(application: Application) : AndroidViewModel(application) {
@@ -32,83 +29,72 @@ class ConversationsViewModel(application: Application) : AndroidViewModel(applic
     private val _uiState = MutableStateFlow(ConversationsUiState())
     val uiState: StateFlow<ConversationsUiState> = _uiState.asStateFlow()
 
+    private var allUsers: List<UserResponse> = emptyList()
+
     init {
-        loadConversations()
-        loadCurrentUser()
+        loadData()
     }
 
-    fun loadConversations() {
+    fun loadData() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
-            when (val result = chatRepository.getConversations()) {
-                is Resource.Success -> {
-                    _uiState.update { it.copy(isLoading = false, conversations = result.data) }
-                }
-                is Resource.Error -> {
-                    _uiState.update { it.copy(isLoading = false, error = result.message) }
-                }
-                is Resource.Loading -> {}
+
+            val currentUser = userRepository.getCurrentUser()
+            if (currentUser !is Resource.Success) {
+                _uiState.update { it.copy(isLoading = false, error = "Failed to load user") }
+                return@launch
+            }
+
+            val me = currentUser.data
+            allUsers = (userRepository.getAllUsers() as? Resource.Success)?.data ?: emptyList()
+
+            val conversations = (chatRepository.getConversations() as? Resource.Success)?.data
+                ?: emptyList()
+
+            val existingChats = conversations.mapNotNull { conv ->
+                val other = conv.participants.firstOrNull { it != me.username } ?: return@mapNotNull null
+                val otherUser = allUsers.firstOrNull { it.username == other }
+                ChatItem.ExistingChat(
+                    conversationId = conv.id,
+                    otherUsername = other,
+                    otherFullName = otherUser?.fullName ?: other,
+                    lastMessage = conv.lastMessage?.let { "${it.senderUsername}: ${it.content}" }
+                )
+            }
+
+            val existingUsernames = conversations.flatMap { it.participants }.toSet()
+
+            val contacts = allUsers
+                .filter { it.username != me.username && it.username !in existingUsernames }
+                .map { ChatItem.Contact(id = it.id, username = it.username, fullName = it.fullName) }
+
+            _uiState.update {
+                it.copy(
+                    isLoading = false,
+                    existingChats = existingChats,
+                    contacts = contacts,
+                    currentUsername = me.username
+                )
             }
         }
     }
 
-    private fun loadCurrentUser() {
+    fun startChat(username: String): String? {
+        val existing = _uiState.value.existingChats.firstOrNull { it.otherUsername == username }
+        return existing?.conversationId
+    }
+
+    fun createChat(username: String, onCreated: (String) -> Unit) {
         viewModelScope.launch {
-            when (val result = userRepository.getCurrentUser()) {
+            when (val result = chatRepository.createConversation(listOf(username))) {
                 is Resource.Success -> {
-                    _uiState.update { it.copy(currentUser = result.data) }
-                }
-                else -> {}
-            }
-        }
-    }
-
-    fun loadUsers() {
-        viewModelScope.launch {
-            when (val result = userRepository.getAllUsers()) {
-                is Resource.Success -> {
-                    val currentUsername = _uiState.value.currentUser?.username
-                    _uiState.update {
-                        it.copy(
-                            users = result.data.filter { u -> u.username != currentUsername },
-                            showCreateDialog = true
-                        )
-                    }
-                }
-                else -> {}
-            }
-        }
-    }
-
-    fun toggleUser(userId: Long) {
-        _uiState.update {
-            val newSet = it.selectedUserIds.toMutableSet()
-            if (newSet.contains(userId)) newSet.remove(userId) else newSet.add(userId)
-            it.copy(selectedUserIds = newSet)
-        }
-    }
-
-    fun hideCreateDialog() {
-        _uiState.update { it.copy(showCreateDialog = false, selectedUserIds = emptySet()) }
-    }
-
-    fun createConversation() {
-        val selectedUsernames = _uiState.value.users
-            .filter { _uiState.value.selectedUserIds.contains(it.id) }
-            .map { it.username }
-
-        if (selectedUsernames.isEmpty()) return
-
-        viewModelScope.launch {
-            when (val result = chatRepository.createConversation(selectedUsernames)) {
-                is Resource.Success -> {
-                    _uiState.update { it.copy(showCreateDialog = false, selectedUserIds = emptySet()) }
-                    loadConversations()
+                    onCreated(result.data.id)
+                    loadData()
                 }
                 is Resource.Error -> {
                     _uiState.update { it.copy(error = result.message) }
                 }
-                is Resource.Loading -> {}
+                else -> {}
             }
         }
     }
@@ -116,7 +102,6 @@ class ConversationsViewModel(application: Application) : AndroidViewModel(applic
     fun logout() {
         viewModelScope.launch {
             container.authRepository.logout()
-            _uiState.update { it.copy(conversations = emptyList()) }
         }
     }
 }
