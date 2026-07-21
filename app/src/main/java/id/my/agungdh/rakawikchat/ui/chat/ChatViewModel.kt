@@ -65,6 +65,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun connectWebSocket() {
+        if (_uiState.value.isConnected) return
         chatRepository.connectStomp(
             onConnected = {
                 _uiState.update { it.copy(isConnected = true) }
