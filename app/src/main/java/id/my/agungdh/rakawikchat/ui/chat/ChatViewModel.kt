@@ -103,6 +103,10 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update { it.copy(isConnected = false) }
     }
 
+    fun reconnect() {
+        connectWebSocket()
+    }
+
     override fun onCleared() {
         super.onCleared()
         disconnect()
