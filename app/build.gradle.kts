@@ -6,23 +6,33 @@ plugins {
 android {
     namespace = "id.my.agungdh.rakawikchat"
     compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
+        version = release(37)
     }
 
     defaultConfig {
         applicationId = "id.my.agungdh.rakawikchat"
         minSdk = 30
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 1
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        register("releaseDebug") {
+            storeFile = rootProject.file("ci-debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
         release {
+            signingConfig = signingConfigs.getByName("releaseDebug")
+            isMinifyEnabled = false
+            isShrinkResources = false
             optimization {
                 enable = false
             }
