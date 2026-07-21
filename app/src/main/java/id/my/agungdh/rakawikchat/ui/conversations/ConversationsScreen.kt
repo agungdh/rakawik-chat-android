@@ -1,15 +1,18 @@
 package id.my.agungdh.rakawikchat.ui.conversations
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -32,9 +35,7 @@ fun ConversationsScreen(
                     TextButton(onClick = {
                         viewModel.logout()
                         onLogout()
-                    }) {
-                        Text("Logout")
-                    }
+                    }) { Text("Logout") }
                 }
             )
         }
@@ -44,9 +45,7 @@ fun ConversationsScreen(
                 Box(
                     modifier = Modifier.fillMaxSize().padding(innerPadding),
                     contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
+                ) { CircularProgressIndicator() }
             }
             uiState.error != null -> {
                 Box(
@@ -78,6 +77,7 @@ fun ConversationsScreen(
                             ChatRow(
                                 name = chat.otherFullName,
                                 subtitle = chat.lastMessage,
+                                online = chat.online,
                                 onClick = { onChatOpen(chat.conversationId, chat.otherFullName) }
                             )
                         }
@@ -92,8 +92,7 @@ fun ConversationsScreen(
                         )
                     }
 
-                    if (uiState.contacts.isEmpty()
-                        && uiState.existingChats.isNotEmpty()) {
+                    if (uiState.contacts.isEmpty() && uiState.existingChats.isNotEmpty()) {
                         item {
                             Text(
                                 "All contacts have active chats",
@@ -108,6 +107,7 @@ fun ConversationsScreen(
                         ContactRow(
                             name = contact.fullName,
                             subtitle = "@${contact.username}",
+                            online = contact.online,
                             onClick = {
                                 val existingId = viewModel.startChat(contact.username)
                                 if (existingId != null) {
@@ -127,22 +127,30 @@ fun ConversationsScreen(
 }
 
 @Composable
-private fun ChatRow(name: String, subtitle: String?, onClick: () -> Unit) {
+private fun ChatRow(name: String, subtitle: String?, online: Boolean, onClick: () -> Unit) {
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                Icons.Filled.Person,
-                contentDescription = null,
-                modifier = Modifier.size(48.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
+            Box(modifier = Modifier.size(48.dp), contentAlignment = Alignment.BottomEnd) {
+                Icon(
+                    Icons.Filled.Person,
+                    contentDescription = null,
+                    modifier = Modifier.size(48.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                if (online) {
+                    Box(
+                        modifier = Modifier
+                            .size(14.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.tertiary)
+                    )
+                }
+            }
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(name, fontWeight = FontWeight.Bold)
@@ -161,22 +169,30 @@ private fun ChatRow(name: String, subtitle: String?, onClick: () -> Unit) {
 }
 
 @Composable
-private fun ContactRow(name: String, subtitle: String, onClick: () -> Unit) {
+private fun ContactRow(name: String, subtitle: String, online: Boolean, onClick: () -> Unit) {
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                Icons.Filled.Person,
-                contentDescription = null,
-                modifier = Modifier.size(48.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Box(modifier = Modifier.size(48.dp), contentAlignment = Alignment.BottomEnd) {
+                Icon(
+                    Icons.Filled.Person,
+                    contentDescription = null,
+                    modifier = Modifier.size(48.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (online) {
+                    Box(
+                        modifier = Modifier
+                            .size(14.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.tertiary)
+                    )
+                }
+            }
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(name, fontWeight = FontWeight.Bold)

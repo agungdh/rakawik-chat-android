@@ -58,7 +58,8 @@ class ConversationsViewModel(application: Application) : AndroidViewModel(applic
                     conversationId = conv.id,
                     otherUsername = other,
                     otherFullName = otherUser?.fullName ?: other,
-                    lastMessage = conv.lastMessage?.let { "${it.senderUsername}: ${it.content}" }
+                    lastMessage = conv.lastMessage?.let { "${it.senderUsername}: ${it.content}" },
+                    online = otherUser?.online == true
                 )
             }
 
@@ -66,7 +67,7 @@ class ConversationsViewModel(application: Application) : AndroidViewModel(applic
 
             val contacts = allUsers
                 .filter { it.username != me.username && it.username !in existingUsernames }
-                .map { ChatItem.Contact(id = it.id, username = it.username, fullName = it.fullName) }
+                .map { ChatItem.Contact(id = it.id, username = it.username, fullName = it.fullName, online = it.online == true) }
 
             _uiState.update {
                 it.copy(
